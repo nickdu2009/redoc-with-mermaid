@@ -1,0 +1,36 @@
+# Source files
+src/
+public/
+
+# Config files
+*.config.ts
+*.config.js
+tsconfig.json
+tsconfig.build.json
+
+# Dev files
+.gitignore
+.eslintrc*
+.prettierrc*
+.editorconfig
+
+# IDE
+.vscode/
+.idea/
+
+# Test files
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+coverage/
+
+# Build artifacts
+node_modules/
+.playwright-mcp/
+
+# Misc
+*.log
+.DS_Store
+

@@ -1,0 +1,360 @@
+openapi: 3.0.3
+info:
+  title: Sample API with Mermaid Diagrams
+  version: 1.0.0
+  description: |
+    # Welcome to the Sample API
+
+    This API demonstrates the integration of Mermaid diagrams in OpenAPI documentation.
+
+    ## System Architecture
+
+    ```mermaid
+    flowchart TB
+        subgraph Client
+            A[Web App]
+            B[Mobile App]
+        end
+        
+        subgraph API Gateway
+            C[Load Balancer]
+        end
+        
+        subgraph Services
+            D[Auth Service]
+            E[User Service]
+            F[Order Service]
+        end
+        
+        subgraph Database
+            G[(PostgreSQL)]
+            H[(Redis Cache)]
+        end
+        
+        A --> C
+        B --> C
+        C --> D
+        C --> E
+        C --> F
+        D --> G
+        E --> G
+        F --> G
+        D --> H
+        E --> H
+    ```
+
+    ## Authentication Flow
+
+    ```mermaid
+    sequenceDiagram
+        participant U as User
+        participant C as Client App
+        participant A as Auth Service
+        participant D as Database
+        
+        U->>C: Enter credentials
+        C->>A: POST /auth/login
+        A->>D: Validate user
+        D-->>A: User data
+        A-->>C: JWT Token
+        C-->>U: Login success
+        
+        Note over C,A: Subsequent requests
+        C->>A: Request with JWT
+        A->>A: Validate token
+        A-->>C: Protected resource
+    ```
+
+    ## User State Machine
+
+    ```mermaid
+    stateDiagram-v2
+        [*] --> Registered
+        Registered --> Active: Email verified
+        Active --> Suspended: Violation
+        Suspended --> Active: Appeal approved
+        Active --> Deleted: Account deletion
+        Suspended --> Deleted: Account deletion
+        Deleted --> [*]
+    ```
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+
+paths:
+  /users:
+    get:
+      summary: Get all users
+      description: |
+        Returns a list of all users in the system.
+
+        ## Request Flow
+
+        ```mermaid
+        flowchart LR
+            A[Client] --> B[API Gateway]
+            B --> C[User Service]
+            C --> D[(Database)]
+            D --> C
+            C --> B
+            B --> A
+        ```
+      operationId: getUsers
+      tags:
+        - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+    post:
+      summary: Create a new user
+      description: |
+        Creates a new user account.
+
+        ## User Registration Process
+
+        ```mermaid
+        flowchart TD
+            A[Start] --> B{Valid Input?}
+            B -->|No| C[Return Error]
+            B -->|Yes| D[Create User]
+            D --> E[Send Verification Email]
+            E --> F[Return Success]
+            C --> G[End]
+            F --> G
+        ```
+      operationId: createUser
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/{id}:
+    get:
+      summary: Get user by ID
+      operationId: getUserById
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+
+  /auth/login:
+    post:
+      summary: User login
+      description: |
+        Authenticate a user and receive a JWT token.
+
+        ## Token Lifecycle
+
+        ```mermaid
+        gantt
+            title Token Lifecycle
+            dateFormat  HH:mm
+            section Access Token
+            Valid Period    :active, 00:00, 01:00
+            section Refresh Token
+            Valid Period    :active, 00:00, 24:00
+        ```
+      operationId: login
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /orders:
+    get:
+      summary: Get all orders
+      description: |
+        Returns all orders for the authenticated user.
+
+        ## Order Entity Relationship
+
+        ```mermaid
+        erDiagram
+            USER ||--o{ ORDER : places
+            ORDER ||--|{ ORDER_ITEM : contains
+            PRODUCT ||--o{ ORDER_ITEM : "ordered in"
+            ORDER {
+                uuid id PK
+                uuid user_id FK
+                string status
+                datetime created_at
+            }
+            ORDER_ITEM {
+                uuid id PK
+                uuid order_id FK
+                uuid product_id FK
+                int quantity
+            }
+        ```
+      operationId: getOrders
+      tags:
+        - Orders
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        status:
+          type: string
+          enum: [registered, active, suspended, deleted]
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateUserRequest:
+      type: object
+      required:
+        - email
+        - name
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        password:
+          type: string
+          format: password
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, confirmed, shipped, delivered, cancelled]
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        total:
+          type: number
+          format: float
+        createdAt:
+          type: string
+          format: date-time
+
+    OrderItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        quantity:
+          type: integer
+        price:
+          type: number
+          format: float
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Users
+    description: User management operations
+  - name: Authentication
+    description: Authentication and authorization
+  - name: Orders
+    description: Order management operations
+
